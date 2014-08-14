@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">'use strict';
+
+var _ = require('underscore');
+
+<span id='node_modules-synapsejs-Rpc'>/**
+</span> * @class node_modules.synapsejs.Rpc
+ */
+var defaults = {
+<span id='node_modules-synapsejs-Rpc-cfg-name'>  /**
+</span>   * The name assigned to the module
+   * @cfg {String} [name = 'synapse']
+   */
+  name: 'synapse',
+<span id='node_modules-synapsejs-Rpc-cfg-rpcEmitterName'>  /**
+</span>   * The name assigned to the emitter instance
+   * @cfg {String} [rpcEmitterName = 'rpc-emitter']
+   */
+  rpcEmitterName: 'rpc-emitter',
+<span id='node_modules-synapsejs-Rpc-cfg-advAddress'>  /**
+</span>   * The multicast address used for the multicast events (announce, discovery)
+   * @cfg {String} [advAddress = '237.100.100.100']
+   */
+  advAddress: '237.100.100.100',
+<span id='node_modules-synapsejs-Rpc-cfg-advPort'>  /**
+</span>   * The port used for the announce event
+   * @cfg {Number} [advPort = 2900]
+   */
+  advPort: 2900,
+<span id='node_modules-synapsejs-Rpc-cfg-advPort'>  /**
+</span>   * The port used for the discovery event
+   * @cfg {Number} [advPort = 2901]
+   */
+  discPort: 2901,
+<span id='node_modules-synapsejs-Rpc-cfg-minSrvPort'>  /**
+</span>   * Minimum TCP port assigned to the rpc server instance
+   * @cfg {Number} [minSrvPort = 1024]
+   */
+  minSrvPort: 1024,
+<span id='node_modules-synapsejs-Rpc-cfg-maxSrvPort'>  /**
+</span>   * Maximum TCP port assigned to the rpc sercever instance
+   * @cfg {Number} [maxSrvPort = 2899]
+   */
+  maxSrvPort: 2899,
+<span id='node_modules-synapsejs-Rpc-cfg-startEvent'>  /**
+</span>   * The name for the start event
+   * @cfg {String} [startEvent = 'start']
+   */
+  startEvent: 'start',
+<span id='node_modules-synapsejs-Rpc-cfg-stopEvent'>  /**
+</span>   * The name for the stop event
+   * @cfg {String} [stopEvent = 'stop']
+   */
+  stopEvent: 'stop',
+<span id='node_modules-synapsejs-Rpc-cfg-announceEvent'>  /**
+</span>   * The name for the announce event
+   * @cfg {String} [announceEvent = 'announce']
+   */
+  announceEvent: 'announce',
+<span id='node_modules-synapsejs-Rpc-cfg-discoveryEvent'>  /**
+</span>   * The name for the discovery event
+   * @cfg {String} [discoveryEvent = 'discovery']
+   */
+  discoveryEvent: 'discovery',
+<span id='node_modules-synapsejs-Rpc-cfg-exposeEvent'>  /**
+</span>   * The name for the expose event
+   * @cfg {String} [exposeEvent = 'expose']
+   */
+  exposeEvent: 'expose',
+<span id='node_modules-synapsejs-Rpc-cfg-saveEvent'>  /**
+</span>   * The name for the save event
+   * @cfg {String} [saveEvent = 'save']
+   */
+  saveEvent: 'save',
+<span id='node_modules-synapsejs-Rpc-cfg-destroyEvent'>  /**
+</span>   * The name for the destroy event
+   * @cfg {String} destroyEvent = 'destroy'
+   */
+  destroyEvent: 'destroy',
+<span id='node_modules-synapsejs-Rpc-cfg-errorEvent'>  /**
+</span>   * The name for the error event
+   * @cfg {String} [errorEvent = 'error']
+   */
+  errorEvent: 'error',
+<span id='node_modules-synapsejs-Rpc-cfg-discoveryDelay'>  /**
+</span>   * The maximum delay between the discovery request and the announce replay (in ms)
+   * @cfg {Number} [discoveryDelay = 200]
+   */
+  discoveryDelay: 200,
+<span id='node_modules-synapsejs-Rpc-cfg-id'>  /**
+</span>   * @cfg {String} [id = 'default'] The identifier of the multicast emitter
+   */
+  id: 'default',
+<span id='node_modules-synapsejs-Rpc-cfg-secure'>  /**
+</span>   * @cfg {Boolean} [secure = false] Set `true` to enable the messages encryption
+   */
+  secure: false,
+<span id='node_modules-synapsejs-Rpc-cfg-cipher'>  /**
+</span>   * @cfg {String} [cipher = 'aes256'] The cipher used to encrypt/decrypt the messages
+   */
+  cipher: 'aes256',
+<span id='node_modules-synapsejs-Rpc-cfg-secret'>  /**
+</span>   * @cfg {String} [secret = 'secret'] The shared secret password use to encrypt all messages
+   */
+  secret: 'secret',
+<span id='node_modules-synapsejs-Rpc-cfg-ttl'>  /**
+</span>   * The number of IP hops that a packet is allowed to go through
+   * This option is related to announce and discovery events.
+   * @cfg {Number} [ttl = 64]
+   */
+  ttl: 64,
+<span id='node_modules-synapsejs-Rpc-cfg-interface'>  /**
+</span>   * If not specified, every listener will add membership to all valid interfaces.
+   * The interface must be a valid multicast address (from 224.0.0.1 to 239.255.255.254).
+   * This option is related to announce and discovery events.
+   * @cfg {String} [interface]
+   */
+  interface: undefined,
+<span id='global-cfg-octet'>  /**
+</span>   * The first octet used for the generated multicast address
+   * @cfg {Number} octet
+   * @private
+   * @ignore
+   */
+  octet: 239,
+<span id='node_modules-synapsejs-Rpc-cfg-port'>  /**
+</span>   * The port used as base for the generated port used for every event message.
+   * Use according the other TCP port range used for events and rpc server.
+   * @cfg {Number} [port = 1967]
+   */
+  minEventsPort: 2902,
+<span id='global-cfg-events'>  /**
+</span>   * All events overrides
+   * @cfg {Object} events
+   * @private
+   * @ignore
+   */
+  events: {},
+<span id='node_modules-synapsejs-Rpc-cfg-heartbeat'>  /**
+</span>   * The time interval used to verify if a TCP port is busy (in ms).
+   * When the port is not in use, the manager set this port as available.
+   * @cfg {Number} [heartbeat = 250]
+   */
+  heartbeat: 250,
+<span id='node_modules-synapsejs-Rpc-cfg-timeout'>  /**
+</span>   * The timeout used for every remote operation. An `error` event is fired if the operation fails due a timeout.
+   * @cfg {Number} [timeout = 5000]
+   */
+  timeout: 5000
+};
+
+defaults.events[defaults.announceEvent] = defaults.advPort;
+defaults.events[defaults.discoveryEvent] = defaults.discPort;
+
+module.exports = function (opts) {
+  var cfg = opts || {};
+  _.defaults(cfg, defaults);
+  return cfg;
+};
+</pre>
+</body>
+</html>

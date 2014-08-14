@@ -1,0 +1,51 @@
+{
+  "name": "synapsejs",
+  "description": "Distributed RPC server and client.",
+  "preferGlobal": "false",
+  "version": "1.0.0",
+  "author": {
+    "name": "Marcello Gesmundo",
+    "email": "mgesmundo@yoovant.com",
+    "url": "http://www.yoovant.com"
+  },
+  "keywords": [
+    "rpc",
+    "synapse",
+    "events",
+    "multicast",
+    "network"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mgesmundo/synapse.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mgesmundo/synapse/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/test.js --reporter spec"
+  },
+  "dependencies": {
+    "underscore": "~1.6.0",
+    "axon-rpc": "~0.0.3",
+    "axon-secure": "~2.0.4",
+    "ip": "~0.3.1",
+    "multicast-events": "~2.1.2",
+    "port-manager": "~1.0.0",
+    "useit": "~1.1.0",
+    "vargs": "~0.1.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.21.4",
+    "should": "~4.0.4",
+    "debug": "~1.0.4",
+    "sinon": "1.10.3"
+  },
+  "analyze": false,
+  "license": "BSD",
+  "engines": {
+    "node": ">=0.10"
+  },
+  "readmeFilename": "README.md"
+}
