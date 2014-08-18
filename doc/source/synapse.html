@@ -18,6 +18,121 @@
   <pre class="prettyprint lang-js"><span id='node_modules-synapsejs'>/**
 </span> * Distributed RPC server and client.
  *
+ * ## Installation
+ * 
+ * Install `synapsejs` as usual via [npm](http://npmjs.org).
+ * 
+ * ```sh
+ * $ npm install synapsejs --save
+ * ```
+ * 
+ * ## Quick Start
+ * 
+ * In this simple scenario we have two nodes that expose two methods. The third node is a client-only consumer.
+ * 
+ * ### First node
+ * 
+ * Save the following file as `node1.js`.
+ * 
+ * ```js
+ * var Synapse = require('synapsejs')();
+ * var node1 = new Synapse({
+ *   name: 'node1'
+ * });
+ * node1.expose({
+ *   sum: function (a, b, cb) {
+ *     cb(null, a + b);
+ *   },
+ *   sub: function (a, b, cb) {
+ *     cb(null, a - b);
+ *   }
+ * });
+ * node1.start(function () {
+ *   console.log('node1 is ready');
+ * });
+ * ```
+ * 
+ * ### Second node
+ * 
+ * Save the following file as `node2.js`.
+ * 
+ * ```js
+ * var node2 = new Synapse({
+ *   name: 'node2'
+ * });
+ * node2.expose({
+ *   mul: function (a, b, cb) {
+ *     cb(null, a * b);
+ *   },
+ *   div: function (a, b, cb) {
+ *     cb(null, a / b);
+ *   }
+ * });
+ * node2.start(function () {
+ *   console.log('node2 is ready');
+ * });
+ * ```
+ * 
+ * ### Third node
+ * 
+ * Save the following file as `node3.js`.
+ * 
+ * ```js
+ * var node3 = new Synapse({
+ *   name: 'node3'
+ * });
+ * var announces = 0;
+ * node3.on('announce', function (config) {
+ *   console.log('announce from ' + config.name);
+ *   announces++;
+ *   if (announces === 2) {
+ *   // all nodes are up
+ *     node3.execute('sum', 1, 2, function (err, result) {
+ *       console.log('sum = ' + result);
+ *     });
+ *     node3.execute('sub', 1, 2, function (err, result) {
+ *       console.log('sub = ' + result);
+ *     });
+ *     node3.execute('mul', 1, 2, function (err, result) {
+ *       console.log('nul = ' + result);
+ *     });
+ *     node3.execute('div', 1, 2, function (err, result) {
+ *       console.log('div = ' + result);
+ *     });
+ *   }
+ * });
+ * node3.start(function () {
+ *   console.log('node3 is ready');
+ * });
+ * node3.on('destroy', function (service) {
+ *   console.log('node ' + service.name + ' is no longer available');
+ * });
+ * ```
+ * 
+ * In three terminal windows (in the same or different pc) start this three small apps:
+ * 
+ * ```bash
+ * t1 $ node node1.js
+ * node1 is ready
+ * ```
+ * 
+ * ```bash
+ * t2 $ node node2.js
+ * node2 is ready
+ * ```
+ * 
+ * ```bash
+ * t3 $ node node3.js
+ * node3 is ready
+ * announce from node1
+ * announce from node2
+ * sum = 3
+ * sub = -1
+ * nul = 2
+ * div = 0.5
+ * ```
+ * The last terminal window shows the results.
+ * 
  * @class node_modules.synapsejs
  *
  * @author Marcello Gesmundo
@@ -85,7 +200,7 @@ function _expose(cfg, localEmitter, rpc) {
     }
     localEmitter.emit(cfg.exposeEvent, name, fn);
     return self;
-  }
+  };
 }
 
 function _announce(cfg, rpcEmitter) {
@@ -94,7 +209,7 @@ function _announce(cfg, rpcEmitter) {
     debug('%s emit &quot;%s&quot;: %o', self.name, cfg.announceEvent, self.config);
     rpcEmitter.emit(cfg.announceEvent, self.config);
     return self;
-  }
+  };
 }
 
 function _discovery(cfg, rpcEmitter) {
@@ -103,7 +218,7 @@ function _discovery(cfg, rpcEmitter) {
     debug('%s emit &quot;%s&quot;', self.name, cfg.discoveryEvent);
     rpcEmitter.emit(cfg.discoveryEvent);
     return self;
-  }
+  };
 }
 
 function _execute(cfg, localEmitter) {
@@ -156,7 +271,7 @@ function _execute(cfg, localEmitter) {
         filter.address = address;
       }
       if (port) {
-        filter.port = parseInt(port, 10)
+        filter.port = parseInt(port, 10);
       }
       services = Service.find(filter);
     }
@@ -176,7 +291,7 @@ function _execute(cfg, localEmitter) {
       service.client.call.apply(service.client, params);
     }
     return self;
-  }
+  };
 }
 
 function _onAnnounce(cfg, localEmitter) {
@@ -211,7 +326,7 @@ function _onAnnounce(cfg, localEmitter) {
       });
       service.update();
     }
-  }
+  };
 }
 
 function _onDiscovery(cfg, rpcEmitter) {
@@ -225,7 +340,7 @@ function _onDiscovery(cfg, rpcEmitter) {
     setTimeout(function () {
       rpcEmitter.emit(cfg.announceEvent, self.config);
     }, tout);
-  }
+  };
 }
 
 module.exports = function (config) {
@@ -461,13 +576,16 @@ module.exports = function (config) {
       var destroyed = 0;
       var max = relatedServices.length;
       var relatedServicesDestroyed;
+
+      function _destroy() {
+        destroyed++;
+        relatedServicesDestroyed = (destroyed === max);
+        callback(cb);
+      }
+
       if (max &gt; 0) {
         for (i = relatedServices.length -1; i &gt;= 0; i--) {
-          relatedServices[i].destroy(function () {
-            destroyed++;
-            relatedServicesDestroyed = (destroyed === max);
-            callback(cb);
-          });
+          relatedServices[i].destroy(_destroy);
         }
       } else {
         relatedServicesDestroyed = true;
