@@ -187,6 +187,7 @@ function Service(config) {
    * @method save
    * @param {Function} cb The callback.
    * @param {Error|String} cb.err The error if occurred.
+   * @fires save
    */
   this.save = function save(cb) {
     var service = {
@@ -225,6 +226,7 @@ function Service(config) {
 </span>   * Destroy the service.
    * @param {Function} cb The callback
    * @param {Error|String} cb.err The error if occurred.
+   * @fires destroy
    */
   this.destroy = function destroy(cb) {
     var service = {

@@ -558,8 +558,8 @@ module.exports = function (config) {
           clearTimeout(stopTimeout);
           debug('%s emit &quot;%s&quot;', self.name, cfg.stopEvent);
           _running = false;
-          localEmitter.emit(cfg.stopEvent);
-          cb &amp;&amp; cb();
+          localEmitter.emit(cfg.stopEvent, self.config);
+          cb &amp;&amp; cb(null, self.config);
         }
       }
 
@@ -659,16 +659,21 @@ module.exports = function (config) {
 <span id='node_modules-synapsejs-Rpc-method-announce'>    /**
 </span>     * Announce this new synapse node instance on the network.
      * @method
+     * @fires announce
      */
     this.announce = announce;
-<span id='node_modules-synapsejs-Rpc-property-discovery'>    /**
+<span id='node_modules-synapsejs-Rpc-method-discovery'>    /**
 </span>     * Discovery all synapse node on the network.
+     * @method
+     * @fires discovery
      */
     this.discovery = discovery;
 <span id='node_modules-synapsejs-Rpc-method-start'>    /**
 </span>     * Start the synapse node.
      * @param {Function} cb The callback after the start.
      * @param {Error|String} cb.err The error if occurred.
+     * @param {*} cb.config The config of the started service.
+     * @fires start
      * @chainable
      */
     this.start = start;
@@ -676,7 +681,9 @@ module.exports = function (config) {
 </span>     * Stop the synapse node.
      * @param {Function} cb The callback after the stop.
      * @param {Error|String} cb.err The error if occurred.
-     * @chainbale
+     * @param {*} cb.config The config of the stopped service.
+     * @fires stop
+     * @chainable
      */
     this.stop = stop;
 <span id='node_modules-synapsejs-Rpc-method-expose'>    /**
@@ -711,6 +718,7 @@ module.exports = function (config) {
      * @param {String|Object} fn The function exposed.
      *
      * __NOTE__ The function __MUST__ return the result using a callback whose first argument is the error if occurred or null if no error was occurred.
+     * @fires expose
      * @method
      */
     this.expose = expose;
@@ -804,7 +812,7 @@ module.exports = function (config) {
 
 <span id='node_modules-synapsejs-Rpc-property-config'>  /**
 </span>   * The configuration of the synapse node. Other nodes collect it as a service with its exposed methods.
-   * @property {Object} config The configuration
+   * @property {Object} config
    * @property {String} config.name The name of the synapse node (service).
    * @property {String} config.address The address of the service.
    * @property {Number} config.port The port of the service.
