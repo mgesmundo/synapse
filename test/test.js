@@ -44,7 +44,7 @@ function executeMethod(rpc, method, done) {
   child.pid.should.not.eql(process.pid);
 }
 
-describe('rpc-discovery', function() {
+describe('Synapse', function() {
   it('should receive a local "start" event', function(done) {
     var rpc = new Rpc({
       name: 'main'
