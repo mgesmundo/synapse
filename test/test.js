@@ -320,4 +320,45 @@ describe('Synapse', function() {
       child2.pid.should.not.eql(process.pid);
     }, 200);
   });
+  it('should\'t receive discovery requests in ghost mode', function(done) {
+    var rpc = new Rpc({
+      name: '(ghost)'
+    });
+    rpc.on('announce', function (config) {
+      child.kill();
+      config.name.should.eql('(child)');
+      setTimeout(function () {
+        rpc.stop(done);
+      }, 200);
+    });
+    rpc.start(true, function (err, config) {
+      should.not.exists(err);
+      config.port.should.eql('ghost');
+    });
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+    child.pid.should.not.eql(process.pid);
+  });
+  it('should unable to start in ghost mode with exposed method', function(done) {
+    var rpc = new Rpc({
+      name: '(ghost)'
+    });
+    rpc.expose('sum', sum);
+    rpc.on('error', function (err) {
+      err.should.eql(new Error('(ghost) unable start in ghost mode with exposed methods'));
+      rpc.stop(done);
+    });
+    rpc.start(true);
+  });
+  it('should unable to expose method in ghost mode', function(done) {
+    var rpc = new Rpc({
+      name: '(ghost)'
+    });
+    rpc.on('error', function (err) {
+      err.should.eql(new Error('(ghost) unable expose methods in ghost mode'));
+      rpc.stop(done);
+    });
+    rpc.start(true, function (err, config) {
+      rpc.expose('sum', sum);
+    });
+  });
 });

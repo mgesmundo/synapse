@@ -187,27 +187,37 @@ var Args = require('vargs').Constructor;
 function _expose(cfg, localEmitter, rpc) {
   var self = this;
   return function expose(name, fn) {
-    var keys;
-    if (_.isObject(name) &amp;&amp; !fn) {
-      keys = _.keys(name);
-      debug('%s expose &quot;%s&quot; methods', self.name, keys.join(', '));
-      _.each(keys, function (key) {
-        rpc.expose(key, name[key]);
-      });
+    if (self.ghost) {
+      var error = new Error(util.format('%s unable expose methods in ghost mode', self.name));
+      localEmitter.emit(cfg.errorEvent, error);
     } else {
-      debug('%s expose &quot;%s&quot; method', self.name, name);
-      rpc.expose(name, fn);
+      var keys;
+      if (_.isObject(name) &amp;&amp; !fn) {
+        keys = _.keys(name);
+        debug('%s expose &quot;%s&quot; methods', self.name, keys.join(', '));
+        _.each(keys, function (key) {
+          rpc.expose(key, name[key]);
+        });
+      } else {
+        debug('%s expose &quot;%s&quot; method', self.name, name);
+        rpc.expose(name, fn);
+      }
+      localEmitter.emit(cfg.exposeEvent, name, fn);
     }
-    localEmitter.emit(cfg.exposeEvent, name, fn);
     return self;
   };
 }
 
-function _announce(cfg, rpcEmitter) {
+function _announce(cfg, localEmitter, rpcEmitter) {
   var self = this;
   return function announce() {
-    debug('%s emit &quot;%s&quot;: %o', self.name, cfg.announceEvent, self.config);
-    rpcEmitter.emit(cfg.announceEvent, self.config);
+    if (self.ghost) {
+      var error = new Error(util.format('%s unable announce in ghost mode', self.name));
+      localEmitter.emit(cfg.errorEvent, error);
+    } else {
+      debug('%s emit &quot;%s&quot;: %o', self.name, cfg.announceEvent, self.config);
+      rpcEmitter.emit(cfg.announceEvent, self.config);
+    }
     return self;
   };
 }
@@ -329,17 +339,22 @@ function _onAnnounce(cfg, localEmitter) {
   };
 }
 
-function _onDiscovery(cfg, rpcEmitter) {
+function _onDiscovery(cfg, localEmitter, rpcEmitter) {
   var self = this;
   return function onDiscovery(rinfo) {
-    debug('%s receive &quot;%s&quot; from %s:%d', self.name, cfg.discoveryEvent, rinfo.address, rinfo.port);
-    // a discovery request is handled as new announce event in a random time slot
-    // to avoid simultaneous announce events from other services
-    var tout = Math.floor(Math.random() * cfg.discoveryDelay);
-    debug('%s emit &quot;%s&quot; in %d ms', self.name, cfg.announceEvent, tout);
-    setTimeout(function () {
-      rpcEmitter.emit(cfg.announceEvent, self.config);
-    }, tout);
+    if (self.ghost) {
+      var error = new Error(util.format('%s unable handle discovery in ghost mode', self.name));
+      localEmitter.emit(cfg.errorEvent, error);
+    } else {
+      debug('%s receive &quot;%s&quot; from %s:%d', self.name, cfg.discoveryEvent, rinfo.address, rinfo.port);
+      // a discovery request is handled as new announce event in a random time slot
+      // to avoid simultaneous announce events from other services
+      var tout = Math.floor(Math.random() * cfg.discoveryDelay);
+      debug('%s emit &quot;%s&quot; in %d ms', self.name, cfg.announceEvent, tout);
+      setTimeout(function () {
+        rpcEmitter.emit(cfg.announceEvent, self.config);
+      }, tout);
+    }
   };
 }
 
@@ -359,27 +374,31 @@ module.exports = function (config) {
    * @param {String} [opts.name = 'synapse #n'] The name of the instance
    * @param {String} [opts.address] The address bound to the instance
    * @param {Number} [opts.port] The port bound to the instance.
-   * If no port is specified a free port is bound between minSrvPort and maxSrvPort
+   * @param {Number} [opts.ghost = false] Set true if the node do not fire announce event and do not handle discovery events.
    * @constructor
    */
   function Rpc(opts) {
 <span id='node_modules-synapsejs-Rpc-event-start'>    /**
 </span>     * @event start Fired when the synapse node is up.
-     * @param {Object} config The config of the node.
-     * @param {String} config.name The name of the node (service).
+     * @param {Object} config The config of the started node (service).
+     * @param {String} config.name The name of the service.
      * @param {String} config.address The address of the service.
-     * @param {Number} config.port The port of the service.
+     * @param {Number|String} config.port The port of the service or 'ghost' if the service is in ghost mode.
      */
 
 <span id='node_modules-synapsejs-Rpc-event-stop'>    /**
 </span>     * @event stop Fired when the synapse node is down.
+     * @param {Object} config The config of the stopped node (service).
+     * @param {String} config.name The name of the service.
+     * @param {String} config.address The address of the service.
+     * @param {Number|String} config.port The port of the service or 'ghost' if the service is in ghost mode.
      */
 
 <span id='node_modules-synapsejs-Rpc-event-announce'>    /**
 </span>     * @event announce Fired when the synapse node announce itself on the network.
      * An announce event occurs after a start event.
-     * @param {Object} config The config of the node.
-     * @param {String} config.name The name of the node (service).
+     * @param {Object} config The config of the node (service).
+     * @param {String} config.name The name of the service.
      * @param {String} config.address The address of the service.
      * @param {Number} config.port The port of the service.
      */
@@ -461,6 +480,17 @@ module.exports = function (config) {
       },
       enumerable: true
     });
+    var _ghost = !!opts.ghost;
+<span id='node_modules-synapsejs-Rpc-property-ghost'>    /**
+</span>     * True if the node is in ghost mode (no announce event fired and no discovery events handling).
+     * @property {Boolean} ghost
+     */
+    Object.defineProperty(this, 'ghost', {
+      get: function get() {
+        return _ghost;
+      },
+      enumerable: true
+    });
 
     rpcCounter++;
     var self = this;
@@ -489,15 +519,22 @@ module.exports = function (config) {
       secret: cfg.secret
     });
     var rpc = new axonRpc.Server(rep);
-    var announce = _announce.call(this, cfg, rpcEmitter);
+    var announce = _announce.call(this, cfg, localEmitter, rpcEmitter);
     var discovery = _discovery.call(this, cfg, rpcEmitter);
     var expose = _expose.call(this, cfg, localEmitter, rpc);
     var execute = _execute.call(this, cfg, localEmitter);
     var onAnnounce = _onAnnounce.call(this, cfg, localEmitter);
-    var onDiscovery = _onDiscovery.call(this, cfg, rpcEmitter);
+    var onDiscovery = _onDiscovery.call(this, cfg, localEmitter, rpcEmitter);
 
-    function start(cb) {
+    function start(ghost, cb) {
       debug('%s start request', self.name);
+
+      if (_.isFunction(ghost)) {
+        cb = ghost;
+        ghost = false;
+      }
+      _ghost = !!ghost;
+
       function listen() {
         var startTimeout = setTimeout( function () {
           _running = false;
@@ -523,22 +560,41 @@ module.exports = function (config) {
           self.discovery();
         });
       }
-      if (opts.port) {
-        debug('%s claim TCP port %d for &quot;%s&quot;', self.name, opts.port, cfg.name);
-      } else {
-        debug('%s claim a free TCP port for &quot;%s&quot;', self.name, cfg.name);
-      }
-      // get a free TCP port
-      manager.claim(self.name, opts.port, function (err, service) {
-        if (err) {
-          err = new Error(err);
-          localEmitter(cfg.errorEvent, err);
-          cb &amp;&amp; cb(err);
+      if (!_ghost) {
+        if (opts.port) {
+          debug('%s claim TCP port %d for &quot;%s&quot;', self.name, opts.port, cfg.name);
         } else {
-          _port = service.port;
-          listen();
+          debug('%s claim a free TCP port for &quot;%s&quot;', self.name, cfg.name);
         }
-      });
+        // get a free TCP port
+        manager.claim(self.name, opts.port, function (err, service) {
+          if (err) {
+            err = new Error(err);
+            localEmitter(cfg.errorEvent, err);
+            cb &amp;&amp; cb(err);
+          } else {
+            _port = service.port;
+            listen();
+          }
+        });
+      } else if (_.isEmpty(rpc.methods)) {
+        // listen foreign only announce events
+        rpcEmitter.on(cfg.announceEvent, onAnnounce);
+        _running = true;
+        var ghostConfig = {
+          name: self.name,
+          address: self.address,
+          port: 'ghost'
+        };
+        debug('%s emit &quot;%s&quot; config %o', self.name, cfg.startEvent, ghostConfig);
+        localEmitter.emit(cfg.startEvent, ghostConfig);
+        cb &amp;&amp; cb(null, ghostConfig);
+        self.discovery();
+      } else {
+        var error = new Error(util.format('%s unable start in ghost mode with exposed methods', self.name));
+        localEmitter.emit(cfg.errorEvent, error);
+        cb &amp;&amp; cb(error);
+      }
       return this;
     }
 
@@ -564,8 +620,10 @@ module.exports = function (config) {
       }
 
       // remove listeners
-      rpcEmitter.off(cfg.announceEvent, onAnnounce);
-      rpcEmitter.off(cfg.discoveryEvent, onDiscovery);
+      setImmediate(function () {
+        rpcEmitter.off(cfg.announceEvent, onAnnounce);
+        rpcEmitter.off(cfg.discoveryEvent, onDiscovery);
+      });
 
       // disconnect services
       var filter = {
@@ -670,9 +728,13 @@ module.exports = function (config) {
     this.discovery = discovery;
 <span id='node_modules-synapsejs-Rpc-method-start'>    /**
 </span>     * Start the synapse node.
+     * @param {Boolean} [ghost = false] Set true if no announce event and no discovery response is required (ghost mode).
      * @param {Function} cb The callback after the start.
      * @param {Error|String} cb.err The error if occurred.
-     * @param {*} cb.config The config of the started service.
+     * @param {Object} cb.config The config of the started node (service).
+     * @param {String} cb.config.name The name of the service.
+     * @param {String} cb.config.address The address of the service.
+     * @param {Number|String} cb.config.port The port of the service or 'ghost' if the service is in ghost mode.
      * @fires start
      * @chainable
      */
@@ -681,7 +743,10 @@ module.exports = function (config) {
 </span>     * Stop the synapse node.
      * @param {Function} cb The callback after the stop.
      * @param {Error|String} cb.err The error if occurred.
-     * @param {*} cb.config The config of the stopped service.
+     * @param {Object} cb.config The config of the stopped node (service).
+     * @param {String} cb.config.name The name of the service.
+     * @param {String} cb.config.address The address of the service.
+     * @param {Number|String} cb.config.port The port of the service or 'ghost' if the service is in ghost mode.
      * @fires stop
      * @chainable
      */
