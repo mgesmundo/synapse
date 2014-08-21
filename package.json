@@ -2,7 +2,7 @@
   "name": "synapsejs",
   "description": "Distributed RPC server and client.",
   "preferGlobal": "false",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "author": {
     "name": "Marcello Gesmundo",
     "email": "mgesmundo@yoovant.com",
@@ -34,7 +34,8 @@
     "multicast-events": "~2.1.2",
     "port-manager": "~1.0.0",
     "useit": "~1.1.0",
-    "vargs": "~0.1.0"
+    "vargs": "~0.1.0",
+    "normalize-arguments": "~1.2.0"
   },
   "devDependencies": {
     "mocha": "~1.21.4",
