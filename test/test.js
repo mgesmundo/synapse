@@ -361,4 +361,20 @@ describe('Synapse', function() {
       rpc.expose('sum', sum);
     });
   });
+  it('should find a method by name', function(done) {
+    var rpc = new Rpc({
+      name: '(find)'
+    });
+    rpc.once('announce', function (config) {
+      child.kill();
+      var services = rpc.findByMethod('add');
+      services.should.be.instanceOf(Array).and.have.lengthOf(1);
+      services[0].methods.should.have.property('add');
+      services[0].methods['add'].should.isObject;
+      rpc.stop(done);
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+    child.pid.should.not.eql(process.pid);
+  });
 });
