@@ -53,6 +53,7 @@ describe('Synapse', function() {
       config.name.should.equal('main');
       config.address.should.equal(ip.address());
       config.port.should.within(5000, 5010);
+      config.should.have.property('meta');
       setTimeout(function () {
         rpc.stop(done);
       }, 50);
@@ -69,6 +70,7 @@ describe('Synapse', function() {
       config.name.should.equal('port');
       config.address.should.equal(ip.address());
       config.port.should.equal(7000);
+      config.should.have.property('meta');
       setTimeout(function () {
         rpc.stop(done);
       }, 50);
@@ -84,6 +86,7 @@ describe('Synapse', function() {
       config.name.should.equal('(child)');
       config.address.should.equal(ip.address());
       config.port.should.within(6000, 6010);
+      config.meta.should.eql({info: 'info'});
       rpc.stop(done);
     });
     rpc.start(function (err, config) {
@@ -154,9 +157,10 @@ describe('Synapse', function() {
       name: '(save)'
     });
     rpc.on('save', function (service) {
+      child.kill();
       service.name.should.eql('(child)');
       service.port.should.eql(6000);
-      child.kill();
+      service.meta.should.eql({info: 'info'});
       rpc.stop(done);
     });
     rpc.start();
@@ -191,6 +195,16 @@ describe('Synapse', function() {
     rpc.start(function () {
       rpc.expose('sum', sum);
     });
+  });
+  it('should set a meta option', function(done) {
+    var rpc = new Rpc({
+      name: '(meta)'
+    });
+    rpc.on('start', function (config) {
+      config.meta.should.eql({info: 'meta'});
+      rpc.stop(done);
+    });
+    rpc.start({info: 'meta'});
   });
   it('should expose two methods', function(done) {
     var rpc = new Rpc({

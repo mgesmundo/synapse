@@ -28,4 +28,4 @@ function add(a, b, callback) {
 
 rpc.expose('add', add);
 
-rpc.start();
+rpc.start({info: 'info'});
