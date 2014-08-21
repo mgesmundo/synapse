@@ -377,4 +377,30 @@ describe('Synapse', function() {
     var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
     child.pid.should.not.eql(process.pid);
   });
+  it('should group services by method', function(done) {
+    var rpc = new Rpc({
+      name: '(group by method)'
+    });
+    rpc.on('announce', function (config) {
+      if (rpc.services.length === 2) {
+        child.kill();
+        child2.kill();
+        var services = rpc.servicesByMethod;
+        services.should.have.property('add');
+        services['add'].should.be.instanceOf(Array).and.have.lengthOf(2);
+        services['add'][0].port.should.eql(6000);
+        services['add'][1].port.should.eql(6001);
+        _.size(services).should.equal(1);
+        rpc.stop(done);
+      }
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+    child.pid.should.not.eql(process.pid);
+    var child2;
+    setTimeout(function () {
+      child2 = require('child_process').fork(path.resolve(__dirname, './child-service'));
+      child2.pid.should.not.eql(process.pid);
+    }, 200);
+  });
 });
