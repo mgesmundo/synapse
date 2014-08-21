@@ -32,6 +32,7 @@ var util = require('util');
  * @param {String} config.name The name of the service.
  * @param {String} config.address The address of the service.
  * @param {Number} config.port The port of the service.
+ * @param {Object} [config.meta] Optional information about the service.
  * @private
  * @constructor
  */
@@ -109,6 +110,18 @@ function Service(config) {
     },
     enumerable: true
   });
+  var _meta = config.meta;
+<span id='node_modules-synapsejs-Service-property-meta'>  /**
+</span>   * Optional information about the service.
+   * @property {String} meta
+   * @readonly
+   */
+  Object.defineProperty(this, 'meta', {
+    get: function get() {
+      return _meta;
+    },
+    enumerable: true
+  });
   var _client = new axonRpc.Client(req);
 <span id='node_modules-synapsejs-Service-property-client'>  /**
 </span>   * The rpc client instance.
@@ -158,6 +171,7 @@ function Service(config) {
    * @method update
    * @param {Function} cb The callback.
    * @param {Error|String} cb.err The error if occurred.
+   * @fires announce
    */
   this.update = function update(cb) {
     self.client.methods(function (err, methods) {
@@ -168,7 +182,8 @@ function Service(config) {
         var service = {
           name: self.name,
           address: self.address,
-          port: self.port
+          port: self.port,
+          meta: self.meta
         };
         localEmitter.emit(cfg.announceEvent, service);
         cb &amp;&amp; cb();
@@ -193,7 +208,8 @@ function Service(config) {
     var service = {
       name: self.name,
       address: self.address,
-      port: self.port
+      port: self.port,
+      meta: self.meta
     };
     var error;
     debug('%s save request service %o', self.parent, service);
@@ -232,7 +248,8 @@ function Service(config) {
     var service = {
       name: this.name,
       address: this.address,
-      port: this.port
+      port: this.port,
+      meta: this.meta
     };
     debug('%s destroy request service %o', self.parent, service);
 
@@ -272,7 +289,8 @@ function Service(config) {
   var service = {
     name: this.name,
     address: this.address,
-    port: this.port
+    port: this.port,
+    meta: this.meta
   };
   debug('%s create new service %o', self.parent, service);
 }
@@ -322,13 +340,15 @@ function findByMethod(name) {
  * @param {String} config.name The name of the service.
  * @param {String} config.address The address of the service.
  * @param {Number} config.port The port of the service.
+ * @param {Object} [config.meta] Optional information about the service.
  * @return {Service|Error}
  */
 function createService(config) {
   var service = {
     name: config.name,
     address: config.address,
-    port: config.port
+    port: config.port,
+    meta: config.meta
   };
   var services = Service.find(service);
   if (_.isEmpty(services)) {
