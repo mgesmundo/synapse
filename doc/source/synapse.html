@@ -717,12 +717,14 @@ module.exports = function (config) {
 <span id='node_modules-synapsejs-Rpc-method-announce'>    /**
 </span>     * Announce this new synapse node instance on the network.
      * @method
+     * @chainable
      * @fires announce
      */
     this.announce = announce;
 <span id='node_modules-synapsejs-Rpc-method-discovery'>    /**
 </span>     * Discovery all synapse node on the network.
      * @method
+     * @chainable
      * @fires discovery
      */
     this.discovery = discovery;
@@ -785,6 +787,7 @@ module.exports = function (config) {
      * __NOTE__ The function __MUST__ return the result using a callback whose first argument is the error if occurred or null if no error was occurred.
      * @fires expose
      * @method
+     * @chainable
      */
     this.expose = expose;
 <span id='node_modules-synapsejs-Rpc-method-execute'>    /**
@@ -810,6 +813,7 @@ module.exports = function (config) {
      * @param {Error|String} fn.err The error if occurred or null if no error was occurred.
      * @param {Mixed} [fn.arguments] All results provided by the remote method.
      * @method
+     * @chainable
      */
     this.execute = execute;
   }
@@ -822,6 +826,19 @@ module.exports = function (config) {
    */
   Rpc.prototype.find = function find(criteria) {
     return _.where(this.services, criteria);
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-findByMethod'>  /**
+</span>   * Find a service(s) using its name.
+   * @param {String} name The name of the service to find.
+   * @return {Array}
+   */
+  Rpc.prototype.findByMethod = function findByMethod(name) {
+    return _.filter(this.services, function (service) {
+      return !_.isEmpty(_.filter(service.methods, function (method) {
+        return method.name.toString() === name.toString();
+      }));
+    });
   };
 
 <span id='node_modules-synapsejs-Rpc-property-services'>  /**
@@ -872,6 +889,32 @@ module.exports = function (config) {
   Object.defineProperty(Rpc.prototype, 'servicesByPort', {
     get: function () {
       return _.groupBy(this.services, 'port');
+    }
+  });
+
+<span id='node_modules-synapsejs-Rpc-property-servicesByMethod'>  /**
+</span>   * All collected services grouped by method. Every group property is an Array.
+   * @property {Object} servicesByMethod
+   * @readonly
+   */
+  Object.defineProperty(Rpc.prototype, 'servicesByMethod', {
+    get: function () {
+      var flatten = [];
+      _.forEach(this.services, function (service) {
+        _.forEach(_.keys(service.methods), function (name) {
+          service.method = name;
+          flatten.push(service);
+        });
+      });
+      // group services by method
+      flatten = _.groupBy(flatten, 'method');
+      // remove 'method' property in every service
+      _.forEach(_.keys(flatten), function (method) {
+        _.forEach(flatten[method], function (service) {
+          delete service.method;
+        });
+      });
+      return flatten;
     }
   });
 
