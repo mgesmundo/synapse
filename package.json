@@ -27,14 +27,14 @@
     "test": "mocha test/test.js --reporter spec"
   },
   "dependencies": {
-    "debug": "~1.0.4",
-    "underscore": "~1.6.0",
+    "debug": "~2.0.0",
+    "underscore": "~1.7.0",
     "axon-rpc": "~0.0.3",
-    "axon-secure": "~2.0.4",
+    "axon-secure": "~2.0.6",
     "ip": "~0.3.1",
     "multicast-events": "~2.1.2",
     "port-manager": "~1.0.0",
-    "useit": "~1.1.0",
+    "useit": "~1.2.0",
     "vargs": "~0.1.0",
     "normalize-arguments": "~1.2.0"
   },
