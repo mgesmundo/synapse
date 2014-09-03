@@ -2,6 +2,15 @@
 
 SynapseJS is a distributed RPC system where each node (service) acts as both client and server and collects every method exposed by other nodes in the local network or in the same host in a complex application with a bunch of independent services. Every node can invoke a remote function in every other node without any setup.
 
+## Features
+
+* Automatic gathering of all synapse nodes in network
+* Announce the synapse node with optional `meta` information (e.g. server configuration, etc.)
+* Optional encryption of all network messages
+* No polling to search synapse nodes in network: every new node is discovered automatically when it starts (multicast events)
+* Manage a blacklist to exclude some unwanted synapse node exposed into the network
+* Enable or disable every synapse node with `start` and `stop` methods
+
 ## Installation
 
 Install `synapsejs` as usual via [npm](http://npmjs.org).
@@ -123,11 +132,17 @@ For a full documentation see the `doc` folder content.
 
 ## Tests
 
-As usual our tests are written in the BDD styles for the [Mocha](http://visionmedia.github.com/mocha) test runner using the `should` assertion interface and the great test spies tool [Sinon](http://sinonjs.org).
+As usual our tests are written in the BDD styles for the [Mocha](http://visionmedia.github.com/mocha) test runner using the `should` assertion interface and the great test spies tool [Sinon](http://sinonjs.org) and also the best coverage tool [Blanket](http://blanketjs.org).
 To run the test simply type in your terminal:
 
 ```bash
 $ npm test
+```
+
+To run the coverage test type instead:
+
+```bash
+$ npm run coverage
 ```
 
 ## License

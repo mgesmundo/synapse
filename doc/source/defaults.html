@@ -19,148 +19,132 @@
 
 var _ = require('underscore');
 
-<span id='node_modules-synapsejs-Rpc'>/**
-</span> * @class node_modules.synapsejs.Rpc
+<span id='node_modules-synapsejs'>/**
+</span> * @class node_modules.synapsejs
  */
 var defaults = {
-<span id='node_modules-synapsejs-Rpc-cfg-name'>  /**
-</span>   * The name assigned to the module
-   * @cfg {String} [name = 'synapse']
+<span id='node_modules-synapsejs-cfg-name'>  /**
+</span>   * @cfg {String} [name = 'synapse'] The name assigned to the module
    */
   name: 'synapse',
-<span id='node_modules-synapsejs-Rpc-cfg-rpcEmitterName'>  /**
-</span>   * The name assigned to the emitter instance
-   * @cfg {String} [rpcEmitterName = 'rpc-emitter']
+<span id='node_modules-synapsejs-cfg-rpcEmitterName'>  /**
+</span>   * @cfg {String} [rpcEmitterName = 'rpc-emitter'] The name assigned to the emitter instance
    */
   rpcEmitterName: 'rpc-emitter',
-<span id='node_modules-synapsejs-Rpc-cfg-advAddress'>  /**
-</span>   * The multicast address used for the multicast events (announce, discovery)
-   * @cfg {String} [advAddress = '237.100.100.100']
+<span id='node_modules-synapsejs-cfg-advAddress'>  /**
+</span>   * @cfg {String} [advAddress = '237.100.100.100'] The multicast address used for the multicast events (announce, discovery)
    */
   advAddress: '237.100.100.100',
-<span id='node_modules-synapsejs-Rpc-cfg-advPort'>  /**
-</span>   * The port used for the announce event
-   * @cfg {Number} [advPort = 2900]
+<span id='node_modules-synapsejs-cfg-advPort'>  /**
+</span>   * @cfg {Number} [advPort = 2900] The port used for the announce event
    */
   advPort: 2900,
-<span id='node_modules-synapsejs-Rpc-cfg-advPort'>  /**
-</span>   * The port used for the discovery event
-   * @cfg {Number} [advPort = 2901]
+<span id='node_modules-synapsejs-cfg-advPort'>  /**
+</span>   * @cfg {Number} [advPort = 2901] The port used for the discovery event
    */
   discPort: 2901,
-<span id='node_modules-synapsejs-Rpc-cfg-minSrvPort'>  /**
-</span>   * Minimum TCP port assigned to the rpc server instance
-   * @cfg {Number} [minSrvPort = 1024]
+<span id='node_modules-synapsejs-cfg-minSrvPort'>  /**
+</span>   * @cfg {Number} [minSrvPort = 1024] Minimum TCP port assigned to the rpc server instance
    */
   minSrvPort: 1024,
-<span id='node_modules-synapsejs-Rpc-cfg-maxSrvPort'>  /**
-</span>   * Maximum TCP port assigned to the rpc server instance
-   * @cfg {Number} [maxSrvPort = 2899]
+<span id='node_modules-synapsejs-cfg-maxSrvPort'>  /**
+</span>   * @cfg {Number} [maxSrvPort = 2899] Maximum TCP port assigned to the rpc server instance
    */
   maxSrvPort: 2899,
-<span id='node_modules-synapsejs-Rpc-cfg-startEvent'>  /**
-</span>   * The name for the start event
-   * @cfg {String} [startEvent = 'start']
+<span id='node_modules-synapsejs-cfg-startEvent'>  /**
+</span>   *
+   * @cfg {String} [startEvent = 'start'] The name for the start event
    */
   startEvent: 'start',
-<span id='node_modules-synapsejs-Rpc-cfg-stopEvent'>  /**
-</span>   * The name for the stop event
-   * @cfg {String} [stopEvent = 'stop']
+<span id='node_modules-synapsejs-cfg-stopEvent'>  /**
+</span>   * @cfg {String} [stopEvent = 'stop'] The name for the stop event
    */
   stopEvent: 'stop',
-<span id='node_modules-synapsejs-Rpc-cfg-announceEvent'>  /**
-</span>   * The name of the announce event
-   * @cfg {String} [announceEvent = 'announce']
+<span id='node_modules-synapsejs-cfg-announceEvent'>  /**
+</span>   * @cfg {String} [announceEvent = 'announce'] The name of the announce event
    */
   announceEvent: 'announce',
-<span id='node_modules-synapsejs-Rpc-cfg-discoveryEvent'>  /**
-</span>   * The name of the discovery event
-   * @cfg {String} [discoveryEvent = 'discovery']
+<span id='node_modules-synapsejs-cfg-discoveryEvent'>  /**
+</span>   *
+   * @cfg {String} [discoveryEvent = 'discovery'] The name of the discovery event
    */
   discoveryEvent: 'discovery',
-<span id='node_modules-synapsejs-Rpc-cfg-exposeEvent'>  /**
-</span>   * The name of the expose event
-   * @cfg {String} [exposeEvent = 'expose']
+<span id='node_modules-synapsejs-cfg-exposeEvent'>  /**
+</span>   * @cfg {String} [exposeEvent = 'expose'] The name of the expose event
    */
   exposeEvent: 'expose',
-<span id='node_modules-synapsejs-Rpc-cfg-saveEvent'>  /**
-</span>   * The name of the save event
-   * @cfg {String} [saveEvent = 'save']
+<span id='node_modules-synapsejs-cfg-saveEvent'>  /**
+</span>   * @cfg {String} [saveEvent = 'save'] The name of the save event
    */
   saveEvent: 'save',
-<span id='node_modules-synapsejs-Rpc-cfg-destroyEvent'>  /**
-</span>   * The name of the destroy event
-   * @cfg {String} destroyEvent = 'destroy'
+<span id='node_modules-synapsejs-cfg-destroyEvent'>  /**
+</span>   * @cfg {String} destroyEvent = 'destroy' The name of the destroy event
    */
   destroyEvent: 'destroy',
-<span id='node_modules-synapsejs-Rpc-cfg-errorEvent'>  /**
-</span>   * The name og the error event
-   * @cfg {String} [errorEvent = 'error']
+<span id='node_modules-synapsejs-cfg-errorEvent'>  /**
+</span>   * @cfg {String} [errorEvent = 'error'] The name of the error event
    */
   errorEvent: 'error',
-<span id='node_modules-synapsejs-Rpc-cfg-discoveryDelay'>  /**
-</span>   * The maximum delay between the discovery request and the announce replay (in ms)
-   * @cfg {Number} [discoveryDelay = 200]
+<span id='node_modules-synapsejs-cfg-blacklistEvent'>  /**
+</span>   * @cfg {String} [blacklistEvent = 'blacklist'] The name of the match service in blacklist event
+   */
+  blacklistEvent: 'blacklist',
+<span id='node_modules-synapsejs-cfg-discoveryDelay'>  /**
+</span>   * @cfg {Number} [discoveryDelay = 200] The maximum delay between the discovery request and the announce replay (in ms)
    */
   discoveryDelay: 200,
-<span id='node_modules-synapsejs-Rpc-cfg-id'>  /**
+<span id='node_modules-synapsejs-cfg-id'>  /**
 </span>   * @cfg {String} [id = 'default'] The identifier of the multicast emitter
    */
   id: 'default',
-<span id='node_modules-synapsejs-Rpc-cfg-secure'>  /**
+<span id='node_modules-synapsejs-cfg-secure'>  /**
 </span>   * @cfg {Boolean} [secure = false] Set `true` to enable the messages encryption
    */
   secure: false,
-<span id='node_modules-synapsejs-Rpc-cfg-cipher'>  /**
+<span id='node_modules-synapsejs-cfg-cipher'>  /**
 </span>   * @cfg {String} [cipher = 'aes256'] The cipher used to encrypt/decrypt the messages
    */
   cipher: 'aes256',
-<span id='node_modules-synapsejs-Rpc-cfg-secret'>  /**
+<span id='node_modules-synapsejs-cfg-secret'>  /**
 </span>   * @cfg {String} [secret = 'secret'] The shared secret password use to encrypt all messages
    */
   secret: 'secret',
-<span id='node_modules-synapsejs-Rpc-cfg-ttl'>  /**
-</span>   * The number of IP hops that a packet is allowed to go through
+<span id='node_modules-synapsejs-cfg-ttl'>  /**
+</span>   * @cfg {Number} [ttl = 64]The number of IP hops that a packet is allowed to go through.
    * This option is related to announce and discovery events.
-   * @cfg {Number} [ttl = 64]
    */
   ttl: 64,
-<span id='node_modules-synapsejs-Rpc-cfg-interface'>  /**
-</span>   * If not specified, every listener will add membership to all valid interfaces.
+<span id='node_modules-synapsejs-cfg-interface'>  /**
+</span>   *  @cfg {String} [interface] If not specified, every listener will add membership to all valid interfaces.
    * The interface must be a valid multicast address (from 224.0.0.1 to 239.255.255.254).
    * This option is related to announce and discovery events.
-   * @cfg {String} [interface]
    */
   interface: undefined,
 <span id='global-cfg-octet'>  /**
-</span>   * The first octet used for the generated multicast address
-   * @cfg {Number} octet
+</span>   * @cfg {Number} octet The first octet used for the generated multicast address
    * @private
    * @ignore
    */
   octet: 239,
-<span id='node_modules-synapsejs-Rpc-cfg-port'>  /**
-</span>   * The port used as base for the generated port used for every event message.
+<span id='node_modules-synapsejs-cfg-port'>  /**
+</span>   * @cfg {Number} [port = 2902] The port used as base for the generated port used for every event message.
    * Use according the other TCP port range used for events and rpc server.
-   * @cfg {Number} [port = 2902]
    */
   minEventsPort: 2902,
 <span id='global-cfg-events'>  /**
-</span>   * All events overrides
-   * @cfg {Object} events
+</span>   * @cfg {Object} events All events overrides
    * @private
    * @ignore
    */
   events: {},
-<span id='node_modules-synapsejs-Rpc-cfg-heartbeat'>  /**
-</span>   * The time interval used to verify if a TCP port is busy (in ms).
+<span id='node_modules-synapsejs-cfg-heartbeat'>  /**
+</span>   * @cfg {Number} [heartbeat = 250] The time interval used to verify if a TCP port is busy (in ms).
    * When the port is not in use, the manager set this port as available.
-   * @cfg {Number} [heartbeat = 250]
    */
   heartbeat: 250,
-<span id='node_modules-synapsejs-Rpc-cfg-timeout'>  /**
-</span>   * The timeout used for every remote operation. An `error` event is fired if the operation fails due a timeout.
-   * @cfg {Number} [timeout = 5000]
+<span id='node_modules-synapsejs-cfg-timeout'>  /**
+</span>   * @cfg {Number} [timeout = 5000] The timeout used for every remote operation.
+   * An `error` event is fired if the operation fails due a timeout.
    */
   timeout: 5000
 };

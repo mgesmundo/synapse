@@ -21,7 +21,7 @@ var _ = require('underscore');
 var useit = require('useit');
 var axonRpc = require('axon-rpc');
 var axon = require('axon-secure');
-var debug = require('debug')('rpc:service');
+var debug = require('debug')('synapse:service');
 var util = require('util');
 
 <span id='node_modules-synapsejs-Service-method-constructor'><span id='node_modules-synapsejs-Service'>/**
@@ -160,7 +160,9 @@ function Service(config) {
       }
       req.socks[0].on('close', function () {
         debug('%s close connection to %s:%d', self.parent, self.address, self.port);
-        self.destroy();
+        if (!self.destroyed) {
+          self.destroy();
+        }
       });
     }
     self.update();
@@ -265,6 +267,7 @@ function Service(config) {
         clearTimeout(destroyTimeout);
         debug('%s destroy complete service %o', self.parent, service);
         _list = _.reject(_list, _.matches(service));
+        self.destroyed = true;
         localEmitter.emit(cfg.destroyEvent, service);
         cb &amp;&amp; cb();
       }

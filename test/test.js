@@ -12,6 +12,7 @@ var ip = require('ip');
 var should = require('should');
 var _ = require('underscore');
 var util = require('util');
+var sinon = require('sinon');
 
 function sum(a, b, callback) {
   if (!isNaN(a) && !isNaN(b)) {
@@ -109,6 +110,45 @@ describe('Synapse', function() {
       services['(child)'].should.be.instanceOf(Array).and.have.lengthOf(1);
       services['(child)'][0].methods.should.have.property('add');
       services['(child)'][0].methods['add'].should.isObject;
+      rpc.stop(done);
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+    child.pid.should.not.eql(process.pid);
+  });
+  it('should find a service', function(done) {
+    var rpc = new Rpc({
+      name: 'main4'
+    });
+    rpc.once('announce', function (config) {
+      child.kill();
+      rpc.find(config).should.have.lengthOf(1);
+      rpc.stop(done);
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+    child.pid.should.not.eql(process.pid);
+  });
+  it('should group services by address', function(done) {
+    var rpc = new Rpc({
+      name: 'main5'
+    });
+    rpc.once('announce', function (config) {
+      child.kill();
+      rpc.servicesByAddress.should.have.property(config.address);
+      rpc.stop(done);
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+    child.pid.should.not.eql(process.pid);
+  });
+  it('should group services by port', function(done) {
+    var rpc = new Rpc({
+      name: 'main6'
+    });
+    rpc.once('announce', function (config) {
+      child.kill();
+      rpc.servicesByPort.should.have.property(config.port);
       rpc.stop(done);
     });
     rpc.start();
@@ -416,5 +456,129 @@ describe('Synapse', function() {
       child2 = require('child_process').fork(path.resolve(__dirname, './child-service'));
       child2.pid.should.not.eql(process.pid);
     }, 200);
+  });
+  it('should add and remove an ACL rule', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    var acl = {
+      name: /\([\s\S]+\)/i    // match any name inside two brackets (case insensitive)
+    };
+    rpc.addRule(acl);
+    rpc.rules.should.be.instanceOf(Array).and.have.lengthOf(1);
+    rpc.rules[0].should.eql(acl);
+    rpc.removeRule(acl);
+    rpc.rules.should.be.instanceOf(Array).and.have.lengthOf(0);
+    done();
+  });
+  it('should remove all ACL rules', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    var acl1 = {
+      name: /\([\s\S]+\)/i    // match any name inside two brackets (case insensitive)
+    };
+    var acl2 = {
+      name: /\(name\)/i    // match only the exact name inside two brackets (case insensitive)
+    };
+    rpc.addRule(acl1);
+    rpc.addRule(acl2);
+    rpc.rules.should.be.instanceOf(Array).and.have.lengthOf(2);
+    rpc.rules[0].should.eql(acl1);
+    rpc.rules[1].should.eql(acl2);
+    rpc.removeAllRules();
+    rpc.rules.should.be.instanceOf(Array).and.have.lengthOf(0);
+    done();
+  });
+  it('should add an ACL rule and add a service to blacklist when verify it', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    rpc.addRule({
+      name: /\([\s\S]+\)/i    // match any name inside two brackets (case insensitive)
+    });
+    var service = {
+      name: '(name)'
+    };
+    var match = rpc.checkService(service, true);
+    match.should.true;
+    rpc.blacklist.should.be.instanceOf(Array).and.have.lengthOf(1);
+    rpc.blacklist[0].should.eql(service);
+    done();
+  });
+  it('should add an ACL rule and not add a service to blacklist if it is already blocked', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    rpc.addRule({
+      name: /\([\s\S]+\)/i    // match any name inside two brackets (case insensitive)
+    });
+    var service = {
+      name: '(name)'
+    };
+    rpc.addToBlacklist(service);
+    rpc.blacklist.should.be.instanceOf(Array).and.have.lengthOf(1);
+    rpc.blacklist[0].should.eql(service);
+    var match = rpc.checkService(service, true);
+    match.should.true;
+    rpc.blacklist.should.be.instanceOf(Array).and.have.lengthOf(1);
+    rpc.blacklist[0].should.eql(service);
+    done();
+  });
+
+  it('should do not receive announce from a blocked service', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    rpc.addRule({
+      name: /\(child\)/i    // match any name inside two brackets (case insensitive)
+    });
+    var service = {
+      name: '(child)'
+    };
+    rpc.addToBlacklist(service);
+    var onAnnounce = sinon.spy();
+    rpc.on('announce', onAnnounce);
+    rpc.on('blacklist', function (config) {
+      child.kill();
+      config.name.should.equal(service.name);
+      onAnnounce.called.should.false;
+      rpc.stop(done);
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+  });
+  it('should remove a discovered service if it is added to the blacklist', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    rpc.on('announce', function (config) {
+      config.name.should.equal('(child)');
+      rpc.addToBlacklist(config);
+    });
+    rpc.on('destroy', function (config) {
+      child.kill();
+      config.name.should.equal('(child)');
+      rpc.stop(done);
+    });
+    rpc.start();
+    var child = require('child_process').fork(path.resolve(__dirname, './child-service'));
+  });
+  it('should flush the blacklist', function(done) {
+    var rpc = new Rpc({
+      name: '(acl)'
+    });
+    rpc.addRule({
+      name: /\(child\)/i    // match any name inside two brackets (case insensitive)
+    });
+    var service = {
+      name: '(child)'
+    };
+    rpc.addToBlacklist(service);
+    rpc.blacklist.should.have.lengthOf(1);
+    rpc.blacklist[0].should.eql(service);
+    rpc.flushBlacklist();
+    rpc.blacklist.should.have.lengthOf(0);
+    done();
   });
 });

@@ -134,6 +134,7 @@
  * The last terminal window shows the results.
  * 
  * @class node_modules.synapsejs
+ * @singleton
  *
  * @author Marcello Gesmundo
  *
@@ -168,14 +169,12 @@
  *
  */
 
-'use strict';
-
 var _ = require('underscore');
 var useit = require('useit');
 var Manager = require('port-manager');
 var RpcEventEmitter = require('multicast-events').EventEmitter;
 var LocalEventEmitter = require('events').EventEmitter;
-var debug = require('debug')('rpc');
+var debug = require('debug')('synapse');
 var util = require('util');
 var ip = require('ip');
 var tcpUtil = require('./tcp-util');
@@ -307,10 +306,16 @@ function _execute(cfg, localEmitter) {
 
 function _onAnnounce(cfg, localEmitter) {
   var self = this;
+
   return function onAnnounce(config) {
     // remove parent property for debug purpose only
     delete config.parent;
     debug('%s receive &quot;%s&quot; from %o', self.name, cfg.announceEvent, config);
+    if (self.checkService(config, true)) {
+      debug('%s service %o is in blacklist', self.name, config);
+      localEmitter.emit(cfg.blacklistEvent, config);
+      return;
+    }
     // add new service or update existing
     var service = Service.createService({
       parent: self.name,
@@ -321,7 +326,7 @@ function _onAnnounce(cfg, localEmitter) {
       emitter: localEmitter
     });
     if (service instanceof Error) {
-      debug(service.message);
+      debug('%s %o', self.name, service.message);
       localEmitter.emit(cfg.errorEvent, service);
     } else if (service.isNew) {
       debug('%s on announce save new service %o', self.name, {
@@ -372,14 +377,14 @@ module.exports = function (config) {
 
   var rpcCounter = 0;
 
-<span id='node_modules-synapsejs-Rpc-method-constructor'><span id='node_modules-synapsejs-Rpc'>  /**
-</span></span>   * @class node_modules.synapsejs.Rpc
-   * @param {Object} opts The options
-   * @param {String} [opts.name = 'synapse #n'] The name of the instance
-   * @param {String} [opts.address] The address bound to the instance
-   * @param {Number} [opts.port] The port bound to the instance.
-   * @param {Number} [opts.ghost = false] Set true if the node do not fire announce event and do not handle discovery events.
-   * @param {Object} [opts.meta] Optional information about the instance (this information is exposed in config).
+<span id='node_modules-synapsejs-Rpc-method-constructor'><span id='node_modules-synapsejs-Rpc-cfg-meta'><span id='node_modules-synapsejs-Rpc-cfg-ghost'><span id='node_modules-synapsejs-Rpc-cfg-port'><span id='node_modules-synapsejs-Rpc-cfg-address'><span id='node_modules-synapsejs-Rpc-cfg-name'><span id='node_modules-synapsejs-Rpc'>  /**
+</span></span></span></span></span></span></span>   * @class node_modules.synapsejs.Rpc
+   * @cfg {String} [name = 'synapse #n'] The name of the instance.
+   * __NOTE__: the default name used as base for the sequence if that set into the module config.
+   * @cfg {String} [address] The address bound to the instance
+   * @cfg {Number} [port] The port bound to the instance.
+   * @cfg {Number} [ghost = false] Set true if the node do not fire announce event and do not handle discovery events.
+   * @cfg {Object} [meta] Optional information about the instance (this information is exposed in config).
    * @constructor
    */
   function Rpc(opts) {
@@ -421,6 +426,15 @@ module.exports = function (config) {
      * @param {Error|String} err The error.
      */
 
+<span id='node_modules-synapsejs-Rpc-event-acl'>    /**
+</span>     * @event acl Fired when a new announced service match a rule into the ACL list.
+     * @param {Object} config The config of the blocked node (service).
+     * @param {String} config.name The name of the service.
+     * @param {String} config.address The address of the service.
+     * @param {Number} config.port The port of the service.
+     * @param {Object} config.meta Optional information about the service.
+     */
+
 <span id='node_modules-synapsejs-Rpc-event-save'>    /**
 </span>     * @event save Fired when a new discovered service is saved.
      * @param {Object} service The saved service.
@@ -446,6 +460,8 @@ module.exports = function (config) {
      */
 
     opts = opts || {};
+    var localEmitter = new LocalEventEmitter();
+
     var _name = opts.name || util.format('%s #%d', cfg.name, rpcCounter);
 <span id='node_modules-synapsejs-Rpc-property-name'>    /**
 </span>     * The name of the instance
@@ -512,6 +528,26 @@ module.exports = function (config) {
       },
       enumerable: true
     });
+    var _blacklist = [];
+<span id='node_modules-synapsejs-Rpc-property-blacklist'>    /**
+</span>     * @property {Array} blacklist The list of the blocked services.
+     */
+    Object.defineProperty(this, 'blacklist', {
+      get: function get() {
+        return _blacklist;
+      },
+      enumerable: true
+    });
+    var _rules = [];
+<span id='node_modules-synapsejs-Rpc-property-rules'>    /**
+</span>     * @propety {Array} rules The list of the rules (ACLs) used to block some services.
+     */
+    Object.defineProperty(this, 'rules', {
+      get: function get() {
+        return _rules;
+      },
+      enumerable: true
+    });
 
     rpcCounter++;
     var self = this;
@@ -519,7 +555,6 @@ module.exports = function (config) {
     if (!tcpUtil.verifyAddress(_address)) {
       throw new Error(util.format('no interface is configured with %s address', _address));
     }
-    var localEmitter = new LocalEventEmitter();
     var rpcEmitter = new RpcEventEmitter({
       name: cfg.rpcEmitterName,
       id: cfg.name,
@@ -851,6 +886,7 @@ module.exports = function (config) {
    * @return {Array}
    */
   Rpc.prototype.find = function find(criteria) {
+    debug('%s find services with criteria %o', this.name, criteria);
     return _.where(this.services, criteria);
   };
 
@@ -860,11 +896,161 @@ module.exports = function (config) {
    * @return {Array}
    */
   Rpc.prototype.findByMethod = function findByMethod(name) {
+    debug('%s find services with method %s', this.name, name);
     return _.filter(this.services, function (service) {
       return !_.isEmpty(_.filter(service.methods, function (method) {
         return method.name.toString() === name.toString();
       }));
     });
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-addRule'>  /**
+</span>   * Add a rule to the ACL list used to block a service or a group of services using a regular expressions.
+   *
+   * ## Example
+   *
+   *      var rpc = new Rpc({
+   *        name: '(acl)'
+   *      });
+   *      rpc.addRule({
+   *        name:    /\([\s\S]+\)/i,                          // any name inside two brackets (case insensitive)
+   *        address: /192.168.0.(3[2-9]|[4-5][0-9]|6[0-4])/   // any IP between 192.168.0.32 and 192.168.0.64
+   *      });
+   *
+   * __Note:__ as a firewall the rules are evaluated from the top to the bottom.
+   * @param {Object} acl An object with a regular expression as value for every property.
+   * @param {String|RegExp} acl.name The name of the blocked service.
+   * @param {String|RegExp} acl.address The name of the blocked service.
+   * @param {Number|RegExp} acl.port The port of the blocked service.
+   * @return {Boolean} True if the acl is successfully added to the ACL list (#rules) or it already exists.
+   */
+  Rpc.prototype.addRule = function addRule(acl) {
+    acl = acl || {};
+    if (!_.isEmpty(acl)) {
+      if (!~this.rules.indexOf(acl)) {
+        debug('%s add rule %o', this.name, acl);
+        this.rules.push(acl);
+      }
+      return true;
+    }
+    return false;
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-removeRule'>  /**
+</span>   * Remove a rule from the ACL list used to block a service or a group of services.
+   * @param {Object} acl An object with a regular expression as value for every property.
+   * @param {String|RegExp} acl.name The name of the blocked service.
+   * @param {String|RegExp} acl.address The name of the blocked service.
+   * @param {Number|RegExp} acl.port The port of the blocked service.
+   */
+  Rpc.prototype.removeRule = function removeRule(acl) {
+    acl = acl || {};
+    if (!_.isEmpty(acl) &amp;&amp; !_.isEmpty(this.rules)) {
+      debug('%s remove rule %o', this.name, acl);
+      var acls = _.where(this.rules, acl);
+      if (!_.isEmpty(acls)) {
+        var i, idx;
+        for (i = acls.length - 1; i &gt;=0; i--) {
+          idx = this.rules.indexOf(acls[i]);
+          if (~idx) {
+            this.rules.splice(idx, 1);
+            acls.splice(i, 1);
+          }
+        }
+      }
+    }
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-removeAllRules'>  /**
+</span>   * Remove all rules from the ACL list used to block a service or a group of services.
+   */
+  Rpc.prototype.removeAllRules = function removeAllRules() {
+    debug('%s remove all ACL rules', this.name);
+    while (this.rules.length &gt; 0) {
+      this.rules.pop();
+    }
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-addToBlacklist'>  /**
+</span>   * Add a service to the blacklist.
+   * @param {Object} service The service to add
+   * @param {String} service.name The name of the service.
+   * @param {String} service.address The name of the service.
+   * @param {Number} service.port The port of the service.
+   * @return {Boolean} True if the service is successfully added to the blacklist or it already exists.
+   */
+  Rpc.prototype.addToBlacklist = function addToBlacklist(service) {
+    service = service || {};
+    if (!_.isEmpty(service)) {
+      if (_.isEmpty(_.find(this.blacklist, service))) {
+        debug('%s add to blacklist %o', this.name, service);
+        this.blacklist.push(service);
+        // if the service is also discovered it must be destroyed
+        // FIXME: use Service.list
+        _.forEach(_.where(Service.list, service), function (item) {
+          item.destroy();
+        });
+      }
+      return true;
+    }
+    return false;
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-flushBlacklist'>  /**
+</span>   * Remove all items into the blacklist.
+   */
+  Rpc.prototype.flushBlacklist = function flushBlacklist() {
+    debug('%s flush blacklist', this.name);
+    while (this.blacklist.length &gt; 0) {
+      this.blacklist.pop();
+    }
+  };
+
+<span id='node_modules-synapsejs-Rpc-method-checkService'>  /**
+</span>   * Verify if a service is into the blacklist or match at least one of the optional ACLs or all rules (ACLs list).
+   * @param {Object} service The service to check
+   * @param {String} service.name The name of the service.
+   * @param {String} service.address The name of the service.
+   * @param {Number} service.port The port of the service.
+   * @param {Array} [rules] An array of ACL objects with a regular expression as value for every property.
+   * The ACL have at least one property of the service (name, address, port).
+   * @param {Boolean} [add = false] add True if you want add the service to the blacklist when the test is true.
+   * @return {Boolean} True if the ACL match at least one service into the blacklist.
+   */
+  Rpc.prototype.checkService = function checkService(service, rules, add) {
+    var args = norm(arguments, [norm.object({}), norm.array([]), norm.boolean(false)]);
+    service = args[0];
+    rules = _.isEmpty(args[1]) ? this.rules : args[1];
+    add = args[2];
+    var match = false;
+    var i;
+    var rule;
+    var keys;
+    var test;
+    // verify that the service is into the blacklist
+    if (_.findWhere(this.blacklist, service)) {
+      match = true;
+      add = false;
+    } else {
+      // verify if the service match at least one ACL
+      for (i = 0; i &lt; rules.length; i++) {
+        rule = rules[i];
+        keys = _.keys(rule);
+        test = _.pick(service, keys);
+        match = true;
+        _.forEach(keys, function (key) {
+          match = match &amp;&amp; rule[key].test(test[key]);
+        });
+        if (match) {
+          break;
+        }
+      }
+    }
+    if (add &amp;&amp; match &amp;&amp; _.isEmpty(_.findWhere(this.blacklist, service))) {
+      this.addToBlacklist(service);
+    }
+
+    return match;
   };
 
 <span id='node_modules-synapsejs-Rpc-property-services'>  /**
@@ -968,7 +1154,6 @@ module.exports = function (config) {
 
   return Rpc;
 };
-
 </pre>
 </body>
 </html>

@@ -24,7 +24,8 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/test.js --reporter spec"
+    "test": "mocha test/test.js --reporter spec",
+    "cov": "mocha test/test.js --require blanket --reporter html-cov > test/coverage.html"
   },
   "dependencies": {
     "debug": "~2.0.0",
@@ -41,7 +42,13 @@
   "devDependencies": {
     "mocha": "~1.21.4",
     "should": "~4.0.4",
-    "sinon": "1.10.3"
+    "sinon": "~1.10.3",
+    "blanket": "~1.1.6"
+  },
+  "config": {
+    "blanket": {
+      "pattern": "synapsejs/lib/"
+    }
   },
   "analyze": false,
   "license": "BSD",
