@@ -10,6 +10,7 @@ SynapseJS is a distributed RPC system where each node (service) acts as both cli
 * No polling to search synapse nodes in network: every new node is discovered automatically when it starts (multicast events)
 * Manage a blacklist to exclude some unwanted synapse node exposed into the network
 * Enable or disable every synapse node with `start` and `stop` methods
+* Ghost mode available on `start` to collect only services without expose methods.
 
 ## Installation
 
